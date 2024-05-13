@@ -2,16 +2,8 @@ import Cocoa
 import os
 import Preferences
 import UserNotifications
-#if MAC_APP_STORE
-    protocol SPUStandardUserDriverDelegate {}
-    protocol SPUUpdaterDelegate {}
-#else
-    import Sparkle
-#endif
-import AppCenter
-import AppCenterCrashes
 
-class AppDelegate: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegate, SPUUpdaterDelegate, UNUserNotificationCenterDelegate, NSWindowDelegate {
+class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate, NSWindowDelegate {
     var repositoryWindowController: NSWindowController? {
         didSet {
             repositoryWindowController?.window?.delegate = self
@@ -28,31 +20,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegat
     var pluginManager: PluginManager!
     let prefs = PreferencesStore.shared
     let sharedEnv = Environment.shared
-    #if !MAC_APP_STORE
-        var softwareUpdater: SPUUpdater!
-    #endif
 
     func applicationDidFinishLaunching(_: Notification) {
-        if prefs.collectCrashReports {
-            // Not cool to have the KEY here, but since this is for crash reporting I don't care
-            AppCenter.start(withAppSecret: "40e6c2fa-2383-40a7-bfbd-75662a7d92a9", services: [
-                Crashes.self,
-            ])
-            Crashes.notify(with: .send)
-        }
         preferencesWindowController.window?.delegate = self
         setupToolbar()
-        let hostBundle = Bundle.main
-        #if !MAC_APP_STORE
-            let updateDriver = SPUStandardUserDriver(hostBundle: hostBundle, delegate: self)
-            softwareUpdater = SPUUpdater(hostBundle: hostBundle, applicationBundle: hostBundle, userDriver: updateDriver, delegate: self)
-
-            do {
-                try softwareUpdater.start()
-            } catch {
-                NSLog("Failed to start software updater with error: \(error)")
-            }
-        #endif
 
         setDefaultShelf()
         // Check if plugin folder exists
@@ -130,10 +101,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegat
         return pluginManager.getPluginByNameOrID(identifier: identifier)
     }
 
-    func feedURLString(for _: SPUUpdater) -> String? {
-        if prefs.includeBetaUpdates {
-            return "https://swiftbar.github.io/SwiftBar/appcast-beta.xml"
-        }
+    func feedURLString() -> String {
         return "https://swiftbar.github.io/SwiftBar/appcast.xml"
     }
 

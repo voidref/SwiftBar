@@ -221,8 +221,5 @@ class AppShared: NSObject {
     }
 
     public static func checkForUpdates() {
-        #if !MAC_APP_STORE
-            delegate.softwareUpdater.checkForUpdates()
-        #endif
     }
 }
